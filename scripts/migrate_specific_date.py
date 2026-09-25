@@ -33,8 +33,13 @@ SNOW_TABLE = os.environ.get("SNOW_TABLE", "sn_customerservice_case")
 GH_TOKEN = os.environ["GITHUB_TOKEN"]
 GH_REPO = os.environ["GH_REPO"]
 
-TARGET_DATE = os.environ["TARGET_DATE"]  # e.g. "2026-06-15"
-TARGET_DT = datetime.strptime(TARGET_DATE, "%Y-%m-%d").date()
+TARGET_DATE = os.environ["TARGET_DATE"]  # e.g. "2026-06-15" or "2026-09" (whole month)
+if len(TARGET_DATE) == 7:  # YYYY-MM -- match the whole month
+    MATCH_MODE = "month"
+    TARGET_YEAR, TARGET_MONTH = map(int, TARGET_DATE.split("-"))
+else:  # YYYY-MM-DD -- match one exact day
+    MATCH_MODE = "day"
+    TARGET_DT = datetime.strptime(TARGET_DATE, "%Y-%m-%d").date()
 
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() == "true"
 SLEEP_SECONDS = float(os.environ.get("SLEEP_SECONDS", "0.4"))
@@ -83,8 +88,14 @@ def list_issues_on_target_date():
         page += 1
         time.sleep(0.2)
 
-    matching = [i for i in issues if get_effective_date(i) == TARGET_DT]
-    print(f"{len(matching)} of {len(issues)} issues have an effective date of {TARGET_DATE}")
+    if MATCH_MODE == "month":
+        matching = [
+            i for i in issues
+            if get_effective_date(i).year == TARGET_YEAR and get_effective_date(i).month == TARGET_MONTH
+        ]
+    else:
+        matching = [i for i in issues if get_effective_date(i) == TARGET_DT]
+    print(f"{len(matching)} of {len(issues)} issues have an effective date matching {TARGET_DATE}")
     return matching
 
 
