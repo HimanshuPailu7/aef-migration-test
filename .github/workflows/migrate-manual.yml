@@ -1,0 +1,44 @@
+name: Migrate GitHub Issues to ServiceNow (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: 'Date (YYYY-MM-DD) or whole month (YYYY-MM) to migrate, e.g. 2026-09 for all of September'
+        required: true
+        type: string
+      dry_run:
+        description: 'Dry run (no changes made to ServiceNow)'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run migration script
+        env:
+          SNOW_INSTANCE: ${{ secrets.SNOW_INSTANCE }}
+          SNOW_USER: ${{ secrets.SNOW_USER }}
+          SNOW_PASSWORD: ${{ secrets.SNOW_PASSWORD }}
+          SNOW_TABLE: ${{ secrets.SNOW_TABLE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TARGET_DATE: ${{ inputs.target_date }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: python scripts/migrate_specific_date.py
